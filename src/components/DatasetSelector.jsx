@@ -1,19 +1,41 @@
 import React from 'react';
-import { School, GraduationCap, Sparkles, Layers } from 'lucide-react';
+import { School, GraduationCap, Sparkles, Layers, EyeOff, Eye } from 'lucide-react';
 
 export default function DatasetSelector({
   activeDataset,
   onSelectDataset,
   teacherCount,
-  classes
+  classes,
+  includeMemorized,
+  onToggleIncludeMemorized,
+  memorizedCount,
+  activePoolCount
 }) {
   const totalStudentCount = classes.reduce((acc, c) => acc + c.students.length, 0);
 
   return (
-    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '0.85rem 1.25rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-        <Layers size={18} style={{ color: 'var(--accent-primary)' }} />
-        <span>Dataset pro výuku:</span>
+    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '0.85rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <Layers size={18} style={{ color: 'var(--accent-primary)' }} />
+          <span>Dataset pro výuku (K procvičení: {activePoolCount} kontaktů):</span>
+        </div>
+
+        {/* Include / Exclude Memorized Contacts Toggle */}
+        <button
+          onClick={onToggleIncludeMemorized}
+          className="secondary-btn"
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.78rem',
+            borderColor: !includeMemorized ? 'var(--accent-warning)' : undefined,
+            color: !includeMemorized ? '#fbbf24' : 'var(--text-secondary)'
+          }}
+          title={includeMemorized ? 'Klikněte pro skrytí zapamatovaných kontaktů' : 'Zobrazují se pouze nezpamatované kontakty'}
+        >
+          {!includeMemorized ? <EyeOff size={14} /> : <Eye size={14} />}
+          <span>{!includeMemorized ? `Skryto ${memorizedCount} zapamatovaných` : 'Včetně zapamatovaných'}</span>
+        </button>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>

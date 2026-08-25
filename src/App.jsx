@@ -17,6 +17,8 @@ import {
   createProfile,
   getTykaniMap,
   saveTykani,
+  getMemorizedMap,
+  saveMemorized,
   getNotesMap,
   saveNote,
   getCustomPhotosMap,
@@ -44,6 +46,7 @@ export default function App() {
 
   // Persistent States (for active profile)
   const [tykaniMap, setTykaniMap] = useState(getTykaniMap());
+  const [memorizedMap, setMemorizedMap] = useState(getMemorizedMap());
   const [notesMap, setNotesMap] = useState(getNotesMap());
   const [customPhotosMap, setCustomPhotosMap] = useState(getCustomPhotosMap());
   const [classesData, setClassesData] = useState(getClassesData());
@@ -59,6 +62,7 @@ export default function App() {
   // Reload states whenever profile changes
   const refreshProfileData = useCallback(() => {
     setTykaniMap(getTykaniMap());
+    setMemorizedMap(getMemorizedMap());
     setNotesMap(getNotesMap());
     setCustomPhotosMap(getCustomPhotosMap());
     setClassesData(getClassesData());
@@ -82,7 +86,7 @@ export default function App() {
 
   // Apply Theme attribute to HTML document root
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
+    document.documentElement.setAttribute('data-theme', settings.theme || 'light');
   }, [settings.theme]);
 
   // Dataset selector handler
@@ -91,8 +95,8 @@ export default function App() {
     setDatasetState(updated);
   };
 
-  // Resolve active contacts list based on selected dataset
-  const activeContactsList = useMemo(() => {
+  // Resolve raw active contacts list based on selected dataset
+  const rawDatasetContacts = useMemo(() => {
     if (activeDataset === 'teachers') {
       return contactsData;
     }
@@ -111,11 +115,41 @@ export default function App() {
     return contactsData;
   }, [activeDataset, classesData]);
 
+  // Active pool contacts for learning (only contacts with photo or custom photo, excluding memorized if setting active)
+  const learningContactsList = useMemo(() => {
+    // Exclude photoless contacts unless a custom photo is assigned
+    const withPhotoOnly = rawDatasetContacts.filter(c => c.hasPhoto || !!customPhotosMap[c.id]);
+
+    if (settings.includeMemorizedInQuiz) {
+      return withPhotoOnly;
+    }
+    const unmemorized = withPhotoOnly.filter(c => !memorizedMap[c.id]);
+    return unmemorized.length > 0 ? unmemorized : withPhotoOnly;
+  }, [rawDatasetContacts, customPhotosMap, memorizedMap, settings.includeMemorizedInQuiz]);
+
+  const memorizedInDatasetCount = useMemo(() => {
+    return rawDatasetContacts.filter(c => memorizedMap[c.id]).length;
+  }, [rawDatasetContacts, memorizedMap]);
+
   // Tykání toggle handler
   const handleToggleTykani = (contactId) => {
     const current = !!tykaniMap[contactId];
     const updated = saveTykani(contactId, !current);
     setTykaniMap({ ...updated });
+  };
+
+  // Memorized toggle handler
+  const handleToggleMemorized = (contactId) => {
+    const current = !!memorizedMap[contactId];
+    const updated = saveMemorized(contactId, !current);
+    setMemorizedMap({ ...updated });
+  };
+
+  const handleToggleIncludeMemorized = () => {
+    const nextVal = !settings.includeMemorizedInQuiz;
+    const updated = { ...settings, includeMemorizedInQuiz: nextVal };
+    setSettingsState(updated);
+    saveSettings(updated);
   };
 
   // Note & Custom Photo save handler
@@ -206,9 +240,11 @@ export default function App() {
           <ContactList
             contacts={contactsData}
             tykaniMap={tykaniMap}
+            memorizedMap={memorizedMap}
             notesMap={notesMap}
             customPhotosMap={customPhotosMap}
             onToggleTykani={handleToggleTykani}
+            onToggleMemorized={handleToggleMemorized}
             onEditNote={(c) => setEditingContact(c)}
             onViewPhoto={(c) => setViewingPhotoContact(c)}
           />
@@ -235,10 +271,14 @@ export default function App() {
               onSelectDataset={handleSelectDataset}
               teacherCount={contactsData.length}
               classes={classesData}
+              includeMemorized={settings.includeMemorizedInQuiz}
+              onToggleIncludeMemorized={handleToggleIncludeMemorized}
+              memorizedCount={memorizedInDatasetCount}
+              activePoolCount={learningContactsList.length}
             />
             <QuizGame
-              key={`${activeProfileId}_${activeDataset}`}
-              contacts={activeContactsList}
+              key={`${activeProfileId}_${activeDataset}_${settings.includeMemorizedInQuiz}_${Object.keys(memorizedMap).length}`}
+              contacts={learningContactsList}
               notesMap={notesMap}
               customPhotosMap={customPhotosMap}
               soundEnabled={settings.soundEnabled}
@@ -254,10 +294,14 @@ export default function App() {
               onSelectDataset={handleSelectDataset}
               teacherCount={contactsData.length}
               classes={classesData}
+              includeMemorized={settings.includeMemorizedInQuiz}
+              onToggleIncludeMemorized={handleToggleIncludeMemorized}
+              memorizedCount={memorizedInDatasetCount}
+              activePoolCount={learningContactsList.length}
             />
             <FlashcardGame
-              key={`${activeProfileId}_${activeDataset}`}
-              contacts={activeContactsList}
+              key={`${activeProfileId}_${activeDataset}_${settings.includeMemorizedInQuiz}_${Object.keys(memorizedMap).length}`}
+              contacts={learningContactsList}
               notesMap={notesMap}
               customPhotosMap={customPhotosMap}
               learningState={learningState}

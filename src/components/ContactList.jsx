@@ -1,25 +1,33 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Users, UserCheck, ImageOff, StickyNote, Filter } from 'lucide-react';
+import { Search, Users, UserCheck, Filter, Award, BookOpen } from 'lucide-react';
 import ContactCard from './ContactCard';
 
 export default function ContactList({
   contacts,
   tykaniMap,
+  memorizedMap,
   notesMap,
   customPhotosMap,
   onToggleTykani,
+  onToggleMemorized,
   onEditNote,
   onViewPhoto
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'vedeni', 'pedagogove'
-  const [filterMode, setFilterMode] = useState('all'); // 'all', 'tykani', 'vykani', 'nophoto', 'hasnote'
+  const [filterMode, setFilterMode] = useState('all'); // 'all', 'to_learn', 'memorized', 'tykani', 'nophoto', 'hasnote'
 
   // Counters
   const totalCount = contacts.length;
   const tykaniCount = useMemo(() => {
     return contacts.filter(c => tykaniMap[c.id]).length;
   }, [contacts, tykaniMap]);
+
+  const memorizedCount = useMemo(() => {
+    return contacts.filter(c => memorizedMap[c.id]).length;
+  }, [contacts, memorizedMap]);
+
+  const toLearnCount = totalCount - memorizedCount;
   const noPhotoCount = contacts.filter(c => !c.hasPhoto && !customPhotosMap[c.id]).length;
 
   const filteredContacts = useMemo(() => {
@@ -30,9 +38,12 @@ export default function ContactList({
 
       // Attribute filter
       const isTykani = !!tykaniMap[contact.id];
+      const isMemorized = !!memorizedMap[contact.id];
       const hasNote = !!notesMap[contact.id];
       const isNoPhoto = !contact.hasPhoto && !customPhotosMap[contact.id];
 
+      if (filterMode === 'to_learn' && isMemorized) return false;
+      if (filterMode === 'memorized' && !isMemorized) return false;
       if (filterMode === 'tykani' && !isTykani) return false;
       if (filterMode === 'vykani' && isTykani) return false;
       if (filterMode === 'nophoto' && !isNoPhoto) return false;
@@ -51,7 +62,7 @@ export default function ContactList({
 
       return true;
     });
-  }, [contacts, activeTab, filterMode, searchQuery, tykaniMap, notesMap, customPhotosMap]);
+  }, [contacts, activeTab, filterMode, searchQuery, tykaniMap, memorizedMap, notesMap, customPhotosMap]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -63,43 +74,50 @@ export default function ContactList({
           </div>
           <div>
             <h3 style={{ fontSize: '1.1rem', margin: 0 }}>
-              S {tykaniCount} z {totalCount} kolegů si týkáš!
+              S {tykaniCount} z {totalCount} kolegů si týkáš! • {memorizedCount} zapamatováno
             </h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
-              Označ si každého člověka, s kým si dohodneš tykání.
+              Tlačítkem „Pamatuji si“ skryjete naučené kontakty z kvízů a procvičování.
             </p>
           </div>
         </div>
 
         {/* Quick Filter Pill Chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           <button
             className={`secondary-btn ${filterMode === 'all' ? 'active' : ''}`}
             onClick={() => setFilterMode('all')}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'all' ? 'var(--accent-primary)' : undefined, color: filterMode === 'all' ? 'white' : undefined }}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'all' ? 'var(--accent-primary)' : undefined, color: filterMode === 'all' ? 'white' : undefined }}
           >
             Všechny ({totalCount})
           </button>
           <button
+            className={`secondary-btn ${filterMode === 'to_learn' ? 'active' : ''}`}
+            onClick={() => setFilterMode('to_learn')}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'to_learn' ? '#3b82f6' : undefined, color: filterMode === 'to_learn' ? 'white' : undefined }}
+          >
+            <BookOpen size={13} /> K procvičení ({toLearnCount})
+          </button>
+          <button
+            className={`secondary-btn ${filterMode === 'memorized' ? 'active' : ''}`}
+            onClick={() => setFilterMode('memorized')}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'memorized' ? '#f59e0b' : undefined, color: filterMode === 'memorized' ? 'white' : undefined }}
+          >
+            <Award size={13} /> Naučeno ({memorizedCount})
+          </button>
+          <button
             className={`secondary-btn ${filterMode === 'tykani' ? 'active' : ''}`}
             onClick={() => setFilterMode('tykani')}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'tykani' ? 'var(--accent-success)' : undefined, color: filterMode === 'tykani' ? 'white' : undefined }}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'tykani' ? 'var(--accent-success)' : undefined, color: filterMode === 'tykani' ? 'white' : undefined }}
           >
             Tykáme si ({tykaniCount})
           </button>
           <button
             className={`secondary-btn ${filterMode === 'nophoto' ? 'active' : ''}`}
             onClick={() => setFilterMode('nophoto')}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'nophoto' ? 'var(--accent-warning)' : undefined, color: filterMode === 'nophoto' ? 'white' : undefined }}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'nophoto' ? '#ec4899' : undefined, color: filterMode === 'nophoto' ? 'white' : undefined }}
           >
             Bez fotky ({noPhotoCount})
-          </button>
-          <button
-            className={`secondary-btn ${filterMode === 'hasnote' ? 'active' : ''}`}
-            onClick={() => setFilterMode('hasnote')}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: 'var(--radius-full)', background: filterMode === 'hasnote' ? 'var(--accent-secondary)' : undefined, color: filterMode === 'hasnote' ? 'white' : undefined }}
-          >
-            S poznámkou ({Object.keys(notesMap).length})
           </button>
         </div>
       </div>
@@ -150,9 +168,11 @@ export default function ContactList({
               key={contact.id}
               contact={contact}
               isTykani={!!tykaniMap[contact.id]}
+              isMemorized={!!memorizedMap[contact.id]}
               note={notesMap[contact.id]}
               customPhoto={customPhotosMap[contact.id]}
               onToggleTykani={onToggleTykani}
+              onToggleMemorized={onToggleMemorized}
               onEditNote={onEditNote}
               onViewPhoto={onViewPhoto}
             />

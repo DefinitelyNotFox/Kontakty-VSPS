@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Eye, Check, X, RotateCcw, Sparkles, StickyNote, Layers } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playSound } from '../services/sound';
@@ -13,48 +13,47 @@ export default function FlashcardGame({
   onRecordResult
 }) {
   const [isRevealed, setIsRevealed] = useState(false);
-  const [roundBatchSize] = useState(10);
   
-  // Current active cards batch (queue)
-  const [activeQueue, setActiveQueue] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  // Track round statistics (10 cards)
-  const [roundErrors, setRoundErrors] = useState([]);
-  const [roundSuccesses, setRoundSuccesses] = useState([]);
-  const [isRoundSummary, setIsRoundSummary] = useState(false);
+  // "Grab from a sack" - Unused deck remaining in current cycle
+  const [sackDeck, setSackDeck] = useState([]);
+  const [currentContact, setCurrentContact] = useState(null);
 
-  // Initialize card queue (sort by lowest Leitner level first)
-  const initDeck = (customList = null) => {
-    let deck = [];
+  // Stats tracking
+  const [totalReviewedCount, setTotalReviewedCount] = useState(0);
 
-    if (customList && customList.length > 0) {
-      deck = [...customList];
-    } else {
-      deck = [...contacts].sort((a, b) => {
-        const stateA = learningState[a.id] || { level: 0, lastReviewed: 0 };
-        const stateB = learningState[b.id] || { level: 0, lastReviewed: 0 };
-
-        if (stateA.level !== stateB.level) {
-          return stateA.level - stateB.level;
-        }
-        return stateA.lastReviewed - stateB.lastReviewed;
-      });
+  // Helper to shuffle an array
+  const shuffleArray = (array) => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-
-    setActiveQueue(deck);
-    setCurrentIndex(0);
-    setIsRevealed(false);
-    setRoundErrors([]);
-    setRoundSuccesses([]);
-    setIsRoundSummary(false);
+    return arr;
   };
 
-  useEffect(() => {
-    initDeck();
-  }, [contacts]);
+  // Pull next card from sack (or refill sack if empty)
+  const drawNextFromSack = useCallback((currentSack, availableContacts) => {
+    if (!availableContacts || availableContacts.length === 0) return { nextCard: null, newSack: [] };
 
-  const currentContact = activeQueue[currentIndex];
+    let activeSack = [...currentSack];
+    if (activeSack.length === 0) {
+      // Refill sack with freshly shuffled contacts
+      activeSack = shuffleArray(availableContacts);
+    }
+
+    const nextCard = activeSack.pop();
+    return { nextCard, newSack: activeSack };
+  }, []);
+
+  // Initialize or reset game deck
+  useEffect(() => {
+    if (contacts && contacts.length > 0) {
+      const { nextCard, newSack } = drawNextFromSack([], contacts);
+      setCurrentContact(nextCard);
+      setSackDeck(newSack);
+      setIsRevealed(false);
+    }
+  }, [contacts, drawNextFromSack]);
 
   const handleReveal = () => {
     if (!isRevealed) {
@@ -70,128 +69,44 @@ export default function FlashcardGame({
       onRecordResult(currentContact.id, isCorrect);
     }
 
+    setTotalReviewedCount((prev) => prev + 1);
+
     if (isCorrect) {
       playSound('correct', soundEnabled);
-      setRoundSuccesses((prev) => [...prev, currentContact]);
     } else {
       playSound('wrong', soundEnabled);
-      setRoundErrors((prev) => [...prev, currentContact]);
     }
 
     setIsRevealed(false);
 
-    // Check if end of 10-card round reached
-    const isRoundEnd = (currentIndex + 1) >= Math.min(roundBatchSize, activeQueue.length);
-
-    if (isRoundEnd) {
-      setIsRoundSummary(true);
-      if (soundEnabled) playSound('fanfare', true);
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-    } else {
-      setCurrentIndex((prev) => prev + 1);
-    }
+    // Seamless advance to next card from sack without middle celebrations
+    const { nextCard, newSack } = drawNextFromSack(sackDeck, contacts);
+    setCurrentContact(nextCard);
+    setSackDeck(newSack);
   };
 
-  const handleReviewErrors = () => {
-    if (roundErrors.length > 0) {
-      initDeck(roundErrors);
-    }
-  };
-
-  const handleContinueNextBatch = () => {
-    const remaining = activeQueue.slice(roundBatchSize);
-    if (remaining.length === 0) {
-      initDeck();
-    } else {
-      setActiveQueue(remaining);
-      setCurrentIndex(0);
-      setIsRevealed(false);
-      setRoundErrors([]);
-      setRoundSuccesses([]);
-      setIsRoundSummary(false);
-    }
-  };
-
-  if (!currentContact && !isRoundSummary) return null;
-
-  // Round Summary Screen (After 10 cards)
-  if (isRoundSummary) {
-    const totalRound = roundSuccesses.length + roundErrors.length;
-
+  if (!contacts || contacts.length === 0) {
     return (
-      <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '2.5rem 1.5rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-          <Sparkles size={36} />
-        </div>
-
-        <div>
-          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>Série 10 kartiček dokončena!</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Zde je vaše bilance z proběhlé série:</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', width: '100%' }}>
-          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{totalRound}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Projetých kartiček</div>
-          </div>
-          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-success)' }}>{roundSuccesses.length}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Věděl jsem</div>
-          </div>
-          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-danger)' }}>{roundErrors.length}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nevěděl jsem</div>
-          </div>
-        </div>
-
-        {/* Errors list for review */}
-        {roundErrors.length > 0 ? (
-          <div style={{ width: '100%', textAlign: 'left', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <h4 style={{ color: '#fca5a5', fontSize: '0.95rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <X size={18} /> Kontakty, které jste v této sérii nevěděl ({roundErrors.length}):
-            </h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {roundErrors.map(c => (
-                <span key={c.id} style={{ background: 'var(--bg-card)', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 600 }}>
-                  {c.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ background: 'var(--accent-success-bg)', color: 'var(--accent-success)', padding: '1rem', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>
-            🎉 Perfektní! Všechny kartičky z této série jste věděl bez jediné chyby!
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-          {roundErrors.length > 0 && (
-            <button className="secondary-btn" onClick={handleReviewErrors} style={{ borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>
-              <RotateCcw size={18} /> Procvičit znovu {roundErrors.length} neznámých kontaktů
-            </button>
-          )}
-          <button className="primary-btn" onClick={handleContinueNextBatch}>
-            Pokračovat na dalších 10 kartiček ➔
-          </button>
-        </div>
+      <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+        <Sparkles size={48} style={{ color: 'var(--accent-warning)', marginBottom: '1rem' }} />
+        <h3>🎉 Všechno je naučené!</h3>
+        <p style={{ color: 'var(--text-secondary)' }}>Všechny dostupné kontakty máte označené jako zapamatované.</p>
       </div>
     );
   }
+
+  if (!currentContact) return null;
 
   const currentPhoto = customPhotosMap[currentContact.id] || (currentContact.hasPhoto ? currentContact.photoUrl : null);
   const note = notesMap[currentContact.id];
 
   return (
     <div style={{ maxWidth: '540px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Progress header */}
-      <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+      {/* Progress header showing clean count indicator e.g. "16 ze 16" */}
+      <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 700 }}>
           <Layers size={18} style={{ color: 'var(--accent-primary)' }} />
-          <span>Série (10 kartiček)</span>
-        </div>
-
-        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-          Karta {currentIndex + 1} / {Math.min(roundBatchSize, activeQueue.length)}
+          <span>{sackDeck.length + 1} ze {contacts.length}</span>
         </div>
       </div>
 
@@ -207,7 +122,8 @@ export default function FlashcardGame({
           alignItems: 'center',
           justifyContent: 'space-between',
           textAlign: 'center',
-          boxShadow: 'var(--shadow-lg)'
+          boxShadow: 'var(--shadow-lg)',
+          position: 'relative'
         }}
       >
         {/* Upper Portion: Photo + Optional Note */}
@@ -222,13 +138,6 @@ export default function FlashcardGame({
               </div>
             )}
           </div>
-
-          {/* Photoless Badge */}
-          {!currentContact.hasPhoto && !customPhotosMap[currentContact.id] && (
-            <div style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', fontWeight: 600 }}>
-              ⚠️ Avatar karta • Role: {currentContact.role || currentContact.category}
-            </div>
-          )}
 
           {/* Note if available */}
           {note && (

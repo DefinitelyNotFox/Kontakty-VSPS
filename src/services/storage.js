@@ -1,6 +1,5 @@
-// Local Device Storage Service with Multi-Profile Support
-// Stores Tykání, personal notes, custom photos, classes, and flashcard learning progress
-// independently per device/browser AND per user profile on the same device!
+// Local Device Storage Service with Multi-Profile Support & Memorized Tracking
+// Stores Tykání, personal notes, custom photos, classes, memorized/mastered status, and learning progress
 
 const PROFILES_KEY = 'vsps_profiles_list';
 const ACTIVE_PROFILE_KEY = 'vsps_active_profile_id';
@@ -73,6 +72,27 @@ export function saveTykani(contactId, isTykani) {
   return map;
 }
 
+// --- Memorized / Mastered Tracking ("Pamatuji si") ---
+export function getMemorizedMap() {
+  try {
+    const raw = localStorage.getItem(getKey('memorized_map'));
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+export function saveMemorized(contactId, isMemorized) {
+  const map = getMemorizedMap();
+  if (isMemorized) {
+    map[contactId] = true;
+  } else {
+    delete map[contactId];
+  }
+  localStorage.setItem(getKey('memorized_map'), JSON.stringify(map));
+  return map;
+}
+
 // --- Personal Notes Storage ---
 export function getNotesMap() {
   try {
@@ -118,7 +138,6 @@ export function saveCustomPhoto(contactId, photoUrl) {
 // --- Classes & Students Storage ---
 export function getClassesData() {
   try {
-    // Classes are shared on the device across profiles or profile-specific
     const raw = localStorage.getItem('vsps_shared_classes_data');
     return raw ? JSON.parse(raw) : [
       {
@@ -269,9 +288,9 @@ export function resetAllLearning() {
 export function getSettings() {
   try {
     const raw = localStorage.getItem(getKey('settings'));
-    return raw ? JSON.parse(raw) : { soundEnabled: true, theme: 'dark', cardBatchSize: 10 };
+    return raw ? JSON.parse(raw) : { soundEnabled: true, theme: 'light', cardBatchSize: 10, includeMemorizedInQuiz: false };
   } catch (e) {
-    return { soundEnabled: true, theme: 'dark', cardBatchSize: 10 };
+    return { soundEnabled: true, theme: 'light', cardBatchSize: 10, includeMemorizedInQuiz: false };
   }
 }
 
@@ -284,6 +303,7 @@ export function exportAllData() {
   return JSON.stringify({
     profileId: getActiveProfileId(),
     tykani: getTykaniMap(),
+    memorized: getMemorizedMap(),
     notes: getNotesMap(),
     customPhotos: getCustomPhotosMap(),
     classes: getClassesData(),
@@ -297,6 +317,7 @@ export function importAllData(jsonString) {
   try {
     const parsed = JSON.parse(jsonString);
     if (parsed.tykani) localStorage.setItem(getKey('tykani_map'), JSON.stringify(parsed.tykani));
+    if (parsed.memorized) localStorage.setItem(getKey('memorized_map'), JSON.stringify(parsed.memorized));
     if (parsed.notes) localStorage.setItem(getKey('notes_map'), JSON.stringify(parsed.notes));
     if (parsed.customPhotos) localStorage.setItem(getKey('custom_photos_map'), JSON.stringify(parsed.customPhotos));
     if (parsed.classes) localStorage.setItem('vsps_shared_classes_data', JSON.stringify(parsed.classes));

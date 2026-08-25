@@ -94,7 +94,7 @@
     "email": "divisova@vsps-su.cz",
     "phone": "+420583 326 230",
     "cabinet": "233",
-    "photoUrl": "https://is.vsps-su.cz/avatar/zena.svg",
+    "photoUrl": "",
     "hasPhoto": false,
     "category": "Pedagogové"
   },
@@ -160,7 +160,7 @@
     "email": "chudy@vsps-su.cz",
     "phone": "+420583326216",
     "cabinet": "221",
-    "photoUrl": "https://is.vsps-su.cz/avatar/muz.svg",
+    "photoUrl": "",
     "hasPhoto": false,
     "category": "Pedagogové"
   },
@@ -347,8 +347,8 @@
     "email": "minarova@vsps-su.cz",
     "phone": "+420583326209",
     "cabinet": "D16",
-    "photoUrl": "https://is.vsps-su.cz/avatar/zena.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo2_zena_vlnite.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
@@ -501,8 +501,8 @@
     "email": "shoned@vsps-su.cz",
     "phone": "+420583326224",
     "cabinet": "410",
-    "photoUrl": "https://is.vsps-su.cz/avatar/muz.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo4_muz_svetly.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
@@ -512,8 +512,8 @@
     "email": "shone@vsps-su.cz",
     "phone": "+420583326224",
     "cabinet": "410",
-    "photoUrl": "https://is.vsps-su.cz/avatar/zena.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo5_shone_sona.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
@@ -677,8 +677,8 @@
     "email": "valek@vsps-su.cz",
     "phone": "+420583326209",
     "cabinet": "D16",
-    "photoUrl": "https://is.vsps-su.cz/avatar/muz.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo3_muz_tmavy.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
@@ -688,8 +688,8 @@
     "email": "zandova@vsps-su.cz",
     "phone": "+420583326221",
     "cabinet": "309",
-    "photoUrl": "https://is.vsps-su.cz/avatar/zena.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo1_zena_bryle.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   }
 ]

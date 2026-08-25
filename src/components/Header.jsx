@@ -28,16 +28,6 @@ export default function Header({
 
   return (
     <header className="app-header glass-panel">
-      <div className="app-brand">
-        <div className="brand-icon">
-          <School size={24} />
-        </div>
-        <div>
-          <h1 className="brand-title">Kontakty & Poznávání</h1>
-          <div className="brand-subtitle">VOŠ a SPŠ Šumperk • {totalCount} kolegy</div>
-        </div>
-      </div>
-
       {/* Main Navigation Tabs */}
       <nav className="nav-tabs">
         <button
@@ -58,14 +48,14 @@ export default function Header({
           className={`nav-btn ${activeTab === 'quiz' ? 'active' : ''}`}
           onClick={() => onTabChange('quiz')}
         >
-          <HelpCircle size={18} /> Kvíz 4Možnosti
+          <HelpCircle size={18} /> Kvíz
         </button>
 
         <button
           className={`nav-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
           onClick={() => onTabChange('flashcards')}
         >
-          <Layers size={18} /> Flashcards (10ky)
+          <Layers size={18} /> Flashcards
         </button>
       </nav>
 
@@ -138,15 +128,6 @@ export default function Header({
           title={theme === 'dark' ? 'Přepnout na světlý režim' : 'Přepnout na tmavý režim'}
         >
           {theme === 'dark' ? <Sun size={18} style={{ color: '#f59e0b' }} /> : <Moon size={18} style={{ color: '#6366f1' }} />}
-        </button>
-
-        {/* Stats Modal Trigger */}
-        <button
-          className="icon-button"
-          onClick={onOpenStats}
-          title="Statistiky a záloha dat"
-        >
-          <BarChart2 size={18} style={{ color: 'var(--accent-success)' }} />
         </button>
       </div>
     </header>

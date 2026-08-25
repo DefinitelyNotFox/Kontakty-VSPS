@@ -1,14 +1,24 @@
 import React from 'react';
-import { Mail, Phone, MapPin, CheckCircle2, Circle, StickyNote, Edit3, Camera } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle2, Circle, StickyNote, Edit3, Camera, Award, BookmarkCheck } from 'lucide-react';
 import { getInitials, getAvatarGradient, getTitlePrefix, getCleanName } from '../utils/avatar';
 
-export default function ContactCard({ contact, isTykani, note, customPhoto, onToggleTykani, onEditNote, onViewPhoto }) {
+export default function ContactCard({
+  contact,
+  isTykani,
+  isMemorized,
+  note,
+  customPhoto,
+  onToggleTykani,
+  onToggleMemorized,
+  onEditNote,
+  onViewPhoto
+}) {
   const displayPhoto = customPhoto || (contact.hasPhoto ? contact.photoUrl : null);
   const titlePrefix = getTitlePrefix(contact.name);
   const cleanName = getCleanName(contact.name);
 
   return (
-    <div className={`contact-card ${isTykani ? 'tykani-active' : ''}`}>
+    <div className={`contact-card ${isTykani ? 'tykani-active' : ''} ${isMemorized ? 'memorized-active' : ''}`}>
       <div className="card-header-wrapper">
         <div
           className="avatar-wrapper"
@@ -41,15 +51,37 @@ export default function ContactCard({ contact, isTykani, note, customPhoto, onTo
         </div>
       </div>
 
-      {/* Tykání Switch Button */}
-      <div
-        className={`tykani-toggle ${isTykani ? 'active' : ''}`}
-        onClick={() => onToggleTykani(contact.id)}
-        style={{ padding: '0.35rem 0.6rem' }}
-      >
-        <div className="tykani-label" style={{ fontSize: '0.78rem', gap: '0.35rem' }}>
-          {isTykani ? <CheckCircle2 size={15} style={{ color: 'var(--accent-success)' }} /> : <Circle size={15} style={{ color: 'var(--text-muted)' }} />}
-          <span>{isTykani ? 'Tykání' : 'Vykání'}</span>
+      {/* Row for Tykání Toggle + Pamatuji si Toggle */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        {/* Tykání Switch Button */}
+        <div
+          className={`tykani-toggle ${isTykani ? 'active' : ''}`}
+          onClick={() => onToggleTykani(contact.id)}
+          style={{ padding: '0.35rem 0.6rem', justifyContent: 'center' }}
+          title="Označit zda si týkáte"
+        >
+          <div className="tykani-label" style={{ fontSize: '0.78rem', gap: '0.35rem' }}>
+            {isTykani ? <CheckCircle2 size={15} style={{ color: 'var(--accent-success)' }} /> : <Circle size={15} style={{ color: 'var(--text-muted)' }} />}
+            <span>{isTykani ? 'Tykání' : 'Vykání'}</span>
+          </div>
+        </div>
+
+        {/* Pamatuji Si (Memorized) Toggle */}
+        <div
+          className={`tykani-toggle ${isMemorized ? 'active' : ''}`}
+          onClick={() => onToggleMemorized(contact.id)}
+          style={{
+            padding: '0.35rem 0.6rem',
+            justify: 'center',
+            borderColor: isMemorized ? 'var(--accent-warning)' : undefined,
+            background: isMemorized ? 'rgba(245, 158, 11, 0.15)' : undefined
+          }}
+          title={isMemorized ? 'Tento kontakt je označen jako zapamatovaný (skrytý z kvízů)' : 'Označit jako zapamatovaný kontakt (skryje z kvízů)'}
+        >
+          <div className="tykani-label" style={{ fontSize: '0.78rem', gap: '0.35rem', color: isMemorized ? '#fbbf24' : 'var(--text-secondary)' }}>
+            {isMemorized ? <BookmarkCheck size={15} style={{ color: '#fbbf24' }} /> : <Award size={15} style={{ color: 'var(--text-muted)' }} />}
+            <span>{isMemorized ? 'Naučeno ✓' : 'Pamatuji si'}</span>
+          </div>
         </div>
       </div>
 
