@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Users, HelpCircle, Layers, Moon, Sun, Volume2, VolumeX, BarChart2, School, User, Plus } from 'lucide-react';
+import React from 'react';
+import { Users, HelpCircle, Layers, Moon, Sun, Volume2, VolumeX, GraduationCap } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -7,111 +7,43 @@ export default function Header({
   theme,
   onToggleTheme,
   soundEnabled,
-  onToggleSound,
-  onOpenStats,
-  profiles,
-  activeProfileId,
-  onSelectProfile,
-  onCreateProfile,
-  totalCount
+  onToggleSound
 }) {
-  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
-  const [newProfileName, setNewProfileName] = useState('');
-
-  const handleProfileSubmit = (e) => {
-    e.preventDefault();
-    if (!newProfileName.trim()) return;
-    onCreateProfile(newProfileName.trim());
-    setNewProfileName('');
-    setIsCreatingProfile(false);
-  };
-
   return (
     <header className="app-header glass-panel">
-      {/* Main Navigation Tabs */}
+      {/* Main Navigation Tabs - Compact Mobile Friendly */}
       <nav className="nav-tabs">
         <button
           className={`nav-btn ${activeTab === 'contacts' ? 'active' : ''}`}
           onClick={() => onTabChange('contacts')}
         >
-          <Users size={18} /> Kontakty Učitelů
+          <Users size={17} /> Učitelé
         </button>
 
         <button
           className={`nav-btn ${activeTab === 'classes' ? 'active' : ''}`}
           onClick={() => onTabChange('classes')}
         >
-          <School size={18} /> Třídy & Žáci
+          <GraduationCap size={17} /> Žáci
         </button>
 
         <button
           className={`nav-btn ${activeTab === 'quiz' ? 'active' : ''}`}
           onClick={() => onTabChange('quiz')}
         >
-          <HelpCircle size={18} /> Kvíz
+          <HelpCircle size={17} /> Kvíz
         </button>
 
         <button
           className={`nav-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
           onClick={() => onTabChange('flashcards')}
         >
-          <Layers size={18} /> Flashcards
+          <Layers size={17} /> Flashcards
         </button>
       </nav>
 
-      {/* Quick Action Controls */}
-      <div className="header-actions">
-        {/* Profile Switcher Dropdown */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0, 0, 0, 0.15)', padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-          <User size={16} style={{ color: 'var(--accent-primary)' }} />
-          {!isCreatingProfile ? (
-            <select
-              value={activeProfileId}
-              onChange={(e) => {
-                if (e.target.value === 'NEW') {
-                  setIsCreatingProfile(true);
-                } else {
-                  onSelectProfile(e.target.value);
-                }
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              {profiles.map(p => (
-                <option key={p.id} value={p.id} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                  {p.name}
-                </option>
-              ))}
-              <option value="NEW" style={{ background: 'var(--bg-card)', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
-                + Přidat nový profil...
-              </option>
-            </select>
-          ) : (
-            <form onSubmit={handleProfileSubmit} style={{ display: 'flex', gap: '0.3rem' }}>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Jméno profilu"
-                value={newProfileName}
-                onChange={(e) => setNewProfileName(e.target.value)}
-                autoFocus
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', width: '110px' }}
-              />
-              <button type="submit" className="primary-btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>
-                <Plus size={14} />
-              </button>
-            </form>
-          )}
-        </div>
-
+      {/* Controls Bar: Sound & Theme Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         {/* Sound Toggle */}
         <button
           className="icon-button"

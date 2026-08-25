@@ -225,13 +225,6 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
         soundEnabled={settings.soundEnabled}
         onToggleSound={handleToggleSound}
-        onOpenStats={() => setIsStatsOpen(true)}
-        profiles={profiles}
-        activeProfileId={activeProfileId}
-        onSelectProfile={handleSelectProfile}
-        onCreateProfile={handleCreateProfile}
-        tykaniCount={tykaniCount}
-        totalCount={contactsData.length}
       />
 
       {/* Main Tab Content */}
