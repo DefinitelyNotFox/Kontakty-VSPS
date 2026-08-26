@@ -94,8 +94,8 @@
     "email": "divisova@vsps-su.cz",
     "phone": "+420583 326 230",
     "cabinet": "233",
-    "photoUrl": "",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo7_divisova_monika.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
@@ -226,8 +226,8 @@
     "email": "klimesova@vsps-su.cz",
     "phone": "+420583326209",
     "cabinet": "D16",
-    "photoUrl": "/teacher_photos/photo7_klimesova_monika.png",
-    "hasPhoto": true,
+    "photoUrl": "",
+    "hasPhoto": false,
     "category": "Pedagogové"
   },
   {
