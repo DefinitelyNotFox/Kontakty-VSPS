@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Users, UserCheck, Filter, Award, BookOpen } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, Users, UserCheck, Filter, Award, BookOpen, X } from 'lucide-react';
 import ContactCard from './ContactCard';
 
 export default function ContactList({
@@ -14,8 +14,18 @@ export default function ContactList({
   onViewPhoto
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'vedeni', 'pedagogove'
   const [filterMode, setFilterMode] = useState('all'); // 'all', 'to_learn', 'memorized', 'tykani', 'nophoto', 'hasnote'
+  
+  const searchInputRef = useRef(null);
+
+  // Auto-focus search input when opened
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchOpen]);
 
   // Counters
   const totalCount = contacts.length;
@@ -64,12 +74,17 @@ export default function ContactList({
     });
   }, [contacts, activeTab, filterMode, searchQuery, tykaniMap, memorizedMap, notesMap, customPhotosMap]);
 
+  const handleCloseSearch = () => {
+    setSearchQuery('');
+    setIsSearchOpen(false);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Stats Summary Bar */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Stats Summary Bar & Filter Chips */}
       <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: '1.25rem 1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
             <UserCheck size={24} />
           </div>
           <div>
@@ -122,23 +137,10 @@ export default function ContactList({
         </div>
       </div>
 
-      {/* Search & Category Tabs */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-        {/* Search Input */}
-        <div style={{ position: 'relative', flex: '1', minWidth: '260px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
-            type="text"
-            className="form-input"
-            style={{ paddingLeft: '2.75rem' }}
-            placeholder="Hledat jméno, roli, e-mail, kabinet nebo poznámku..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
+      {/* Category Tabs & Expandable Search Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
         {/* Department Category Buttons */}
-        <div className="nav-tabs">
+        <div className="nav-tabs" style={{ flex: 1, minWidth: 0 }}>
           <button
             className={`nav-btn ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
@@ -149,7 +151,7 @@ export default function ContactList({
             className={`nav-btn ${activeTab === 'vedeni' ? 'active' : ''}`}
             onClick={() => setActiveTab('vedeni')}
           >
-            Vedení školy (5)
+            Vedení (5)
           </button>
           <button
             className={`nav-btn ${activeTab === 'pedagogove' ? 'active' : ''}`}
@@ -158,6 +160,38 @@ export default function ContactList({
             Pedagogové (58)
           </button>
         </div>
+
+        {/* Expandable Search Input / Compact Magnifying Glass Button */}
+        {isSearchOpen || searchQuery ? (
+          <div style={{ position: 'relative', width: '100%', maxWidth: '320px', animation: 'fadeIn 0.2s ease' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="form-input"
+              style={{ paddingLeft: '2.4rem', paddingRight: '2.2rem', height: '38px', fontSize: '0.85rem' }}
+              placeholder="Hledat jméno, kabinet..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              onClick={handleCloseSearch}
+              style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Zavřít vyhledávání"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <button
+            className="secondary-btn"
+            onClick={() => setIsSearchOpen(true)}
+            style={{ padding: '0.5rem 0.75rem', height: '38px', borderRadius: 'var(--radius-md)', flexShrink: 0 }}
+            title="Vyhledat kontakt"
+          >
+            <Search size={17} />
+          </button>
+        )}
       </div>
 
       {/* Contacts Grid */}
@@ -185,7 +219,7 @@ export default function ContactList({
           <p style={{ color: 'var(--text-secondary)', maxWidth: '400px' }}>
             Zkus změnit vyhledávací dotaz nebo vynulovat aktivní filtry.
           </p>
-          <button className="secondary-btn" onClick={() => { setSearchQuery(''); setFilterMode('all'); setActiveTab('all'); }}>
+          <button className="secondary-btn" onClick={() => { setSearchQuery(''); setIsSearchOpen(false); setFilterMode('all'); setActiveTab('all'); }}>
             Zobrazit všechny kontakty
           </button>
         </div>

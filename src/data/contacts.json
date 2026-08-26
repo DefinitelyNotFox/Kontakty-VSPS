@@ -226,7 +226,7 @@
     "email": "klimesova@vsps-su.cz",
     "phone": "+420583326209",
     "cabinet": "D16",
-    "photoUrl": "https://is.vsps-su.cz/avatar/klimesova-1693399691.jpg",
+    "photoUrl": "/teacher_photos/photo7_klimesova_monika.png",
     "hasPhoto": true,
     "category": "Pedagogové"
   },
@@ -336,8 +336,8 @@
     "email": "mikulova@vsps-su.cz",
     "phone": "+420583326221",
     "cabinet": "309",
-    "photoUrl": "https://is.vsps-su.cz/avatar/zena.svg",
-    "hasPhoto": false,
+    "photoUrl": "/teacher_photos/photo6_mikulova_michaela.png",
+    "hasPhoto": true,
     "category": "Pedagogové"
   },
   {
