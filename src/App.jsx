@@ -8,6 +8,7 @@ import DatasetSelector from './components/DatasetSelector';
 import NoteModal from './components/NoteModal';
 import StatsModal from './components/StatsModal';
 import ImageLightboxModal from './components/ImageLightboxModal';
+import SyncModal from './components/SyncModal';
 
 import contactsData from './data/contacts.json';
 import {
@@ -15,6 +16,7 @@ import {
   getActiveProfileId,
   setActiveProfileId,
   createProfile,
+  deleteProfile,
   getTykaniMap,
   saveTykani,
   getMemorizedMap,
@@ -27,6 +29,7 @@ import {
   addClass,
   deleteClass,
   addStudentToClass,
+  updateStudentPhoto,
   deleteStudent,
   getActiveDataset,
   setActiveDataset,
@@ -58,9 +61,12 @@ export default function App() {
   const [editingContact, setEditingContact] = useState(null);
   const [viewingPhotoContact, setViewingPhotoContact] = useState(null);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [syncInitialCode, setSyncInitialCode] = useState(null);
 
-  // Reload states whenever profile changes
+  // Reload states whenever profile changes or data imported
   const refreshProfileData = useCallback(() => {
+    setProfiles(getProfiles());
     setTykaniMap(getTykaniMap());
     setMemorizedMap(getMemorizedMap());
     setNotesMap(getNotesMap());
@@ -69,6 +75,22 @@ export default function App() {
     setDatasetState(getActiveDataset());
     setLearningState(getLearningState());
     setSettingsState(getSettings());
+  }, []);
+
+  // Check URL query param for automatic sync on mobile scan (e.g. ?sync=CODE)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const syncCode = params.get('sync');
+      if (syncCode) {
+        setSyncInitialCode(syncCode);
+        setIsSyncOpen(true);
+        // Clean URL without reloading page
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const handleSelectProfile = (profileId) => {
@@ -81,6 +103,13 @@ export default function App() {
     const { profiles: updated, activeId } = createProfile(profileName);
     setProfiles(updated);
     setProfileIdState(activeId);
+    refreshProfileData();
+  };
+
+  const handleDeleteProfile = (profileId) => {
+    const updated = deleteProfile(profileId);
+    setProfiles(updated);
+    setProfileIdState(getActiveProfileId());
     refreshProfileData();
   };
 
@@ -117,8 +146,8 @@ export default function App() {
 
   // Active pool contacts for learning (only contacts with photo or custom photo, excluding memorized if setting active)
   const learningContactsList = useMemo(() => {
-    // Exclude photoless contacts unless a custom photo is assigned
-    const withPhotoOnly = rawDatasetContacts.filter(c => c.hasPhoto || !!customPhotosMap[c.id]);
+    // Exclude photoless contacts unless a custom photo is assigned or student has photo
+    const withPhotoOnly = rawDatasetContacts.filter(c => c.hasPhoto || !!c.photoUrl || !!customPhotosMap[c.id]);
 
     if (settings.includeMemorizedInQuiz) {
       return withPhotoOnly;
@@ -159,6 +188,15 @@ export default function App() {
 
     const updatedPhotos = saveCustomPhoto(contactId, photoUrl);
     setCustomPhotosMap({ ...updatedPhotos });
+
+    // Also update student photo in classesData if it's a student
+    if (contactId.startsWith('student_')) {
+      const targetClass = classesData.find(c => c.students.some(s => s.id === contactId));
+      if (targetClass) {
+        const updatedClasses = updateStudentPhoto(targetClass.id, contactId, photoUrl);
+        setClassesData(updatedClasses);
+      }
+    }
   };
 
   // Class management handlers
@@ -176,6 +214,12 @@ export default function App() {
   const handleAddStudent = (classId, studentData) => {
     const updated = addStudentToClass(classId, studentData);
     setClassesData(updated);
+  };
+
+  const handleUpdateStudentPhoto = (classId, studentId, photoUrl) => {
+    const updatedClasses = updateStudentPhoto(classId, studentId, photoUrl);
+    setClassesData(updatedClasses);
+    setCustomPhotosMap(getCustomPhotosMap());
   };
 
   const handleDeleteStudent = (classId, studentId) => {
@@ -213,7 +257,7 @@ export default function App() {
     saveSettings(updated);
   };
 
-  const tykaniCount = Object.values(tykaniMap).filter(Boolean).length;
+  const activeProfile = profiles.find(p => p.id === activeProfileId) || { name: 'Honza' };
 
   return (
     <div className="app-layout">
@@ -225,6 +269,12 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
         soundEnabled={settings.soundEnabled}
         onToggleSound={handleToggleSound}
+        profiles={profiles}
+        activeProfileId={activeProfileId}
+        onSelectProfile={handleSelectProfile}
+        onCreateProfile={handleCreateProfile}
+        onDeleteProfile={handleDeleteProfile}
+        onOpenSync={() => setIsSyncOpen(true)}
       />
 
       {/* Main Tab Content */}
@@ -246,14 +296,23 @@ export default function App() {
         {activeTab === 'classes' && (
           <ClassManager
             classes={classesData}
+            profiles={profiles}
+            activeProfileId={activeProfileId}
+            onSelectProfile={handleSelectProfile}
+            onCreateProfile={handleCreateProfile}
+            onDeleteProfile={handleDeleteProfile}
             onAddClass={handleAddClass}
             onDeleteClass={handleDeleteClass}
             onAddStudent={handleAddStudent}
             onDeleteStudent={handleDeleteStudent}
+            onUpdateStudentPhoto={handleUpdateStudentPhoto}
             tykaniMap={tykaniMap}
             notesMap={notesMap}
+            customPhotosMap={customPhotosMap}
             onToggleTykani={handleToggleTykani}
             onEditNote={(c) => setEditingContact(c)}
+            onViewPhoto={(c) => setViewingPhotoContact(c)}
+            onOpenSync={() => setIsSyncOpen(true)}
           />
         )}
 
@@ -305,12 +364,12 @@ export default function App() {
         )}
       </main>
 
-      {/* Note / Hint Editing Modal */}
+      {/* Note / Hint / Photo Editing Modal */}
       {editingContact && (
         <NoteModal
           contact={editingContact}
           note={notesMap[editingContact.id]}
-          customPhoto={customPhotosMap[editingContact.id]}
+          customPhoto={customPhotosMap[editingContact.id] || editingContact.photoUrl}
           onClose={() => setEditingContact(null)}
           onSave={handleSaveNote}
         />
@@ -320,7 +379,7 @@ export default function App() {
       {viewingPhotoContact && (
         <ImageLightboxModal
           contact={viewingPhotoContact}
-          customPhoto={customPhotosMap[viewingPhotoContact.id]}
+          customPhoto={customPhotosMap[viewingPhotoContact.id] || viewingPhotoContact.photoUrl}
           onClose={() => setViewingPhotoContact(null)}
         />
       )}
@@ -335,6 +394,21 @@ export default function App() {
           onClose={() => setIsStatsOpen(false)}
           onDataReset={handleResetLearning}
           onDataImported={handleDataImported}
+        />
+      )}
+
+      {/* Device Sync Modal (PC <-> Mobile transfer) */}
+      {isSyncOpen && (
+        <SyncModal
+          activeProfileName={activeProfile.name}
+          initialCode={syncInitialCode}
+          onClose={() => {
+            setIsSyncOpen(false);
+            setSyncInitialCode(null);
+          }}
+          onSyncApplied={() => {
+            refreshProfileData();
+          }}
         />
       )}
     </div>

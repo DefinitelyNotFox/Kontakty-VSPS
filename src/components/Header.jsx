@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, HelpCircle, Layers, Moon, Sun, Volume2, VolumeX, GraduationCap } from 'lucide-react';
+import TeacherSelector from './TeacherSelector';
 
 export default function Header({
   activeTab,
@@ -7,7 +8,12 @@ export default function Header({
   theme,
   onToggleTheme,
   soundEnabled,
-  onToggleSound
+  onToggleSound,
+  profiles,
+  activeProfileId,
+  onSelectProfile,
+  onCreateProfile,
+  onDeleteProfile
 }) {
   return (
     <header className="app-header glass-panel">
@@ -42,8 +48,20 @@ export default function Header({
         </button>
       </nav>
 
-      {/* Controls Bar: Sound & Theme Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      {/* Controls Bar: Teacher Selector Icon, Sound & Theme Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        {/* Teacher / Profile Selector (compact icon button) */}
+        {profiles && onSelectProfile && (
+          <TeacherSelector
+            profiles={profiles}
+            activeProfileId={activeProfileId}
+            onSelectProfile={onSelectProfile}
+            onCreateProfile={onCreateProfile}
+            onDeleteProfile={onDeleteProfile}
+            variant="icon"
+          />
+        )}
+
         {/* Sound Toggle */}
         <button
           className="icon-button"

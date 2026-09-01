@@ -1,24 +1,48 @@
-// Local Device Storage Service with Multi-Profile Support & Memorized Tracking
-// Stores Tykání, personal notes, custom photos, classes, memorized/mastered status, and learning progress
+// Local Device Storage Service with Multi-Teacher Support & Memorized Tracking
+// Stores Tykání, personal notes, custom photos, classes, memorized status, and learning progress
+
+import { HONZA_CLASSES_DATA } from '../data/honzaClassesData';
 
 const PROFILES_KEY = 'vsps_profiles_list';
 const ACTIVE_PROFILE_KEY = 'vsps_active_profile_id';
 
-// --- Profile Management ---
+const DEFAULT_PROFILES = [{ id: 'honza', name: 'Honza' }];
+
+// --- Teacher Profile Management ---
 export function getProfiles() {
   try {
     const raw = localStorage.getItem(PROFILES_KEY);
-    return raw ? JSON.parse(raw) : [{ id: 'default', name: 'Můj profil' }];
+    if (!raw) {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(DEFAULT_PROFILES));
+      return DEFAULT_PROFILES;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(DEFAULT_PROFILES));
+      return DEFAULT_PROFILES;
+    }
+    // If 'honza' is missing in existing profiles, prepend it
+    if (!parsed.some(p => p.id === 'honza')) {
+      const updated = [{ id: 'honza', name: 'Honza' }, ...parsed.filter(p => p.id !== 'default')];
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(updated));
+      return updated;
+    }
+    return parsed;
   } catch (e) {
-    return [{ id: 'default', name: 'Můj profil' }];
+    return DEFAULT_PROFILES;
   }
 }
 
 export function getActiveProfileId() {
   try {
-    return localStorage.getItem(ACTIVE_PROFILE_KEY) || 'default';
+    const id = localStorage.getItem(ACTIVE_PROFILE_KEY);
+    if (!id || id === 'default') {
+      localStorage.setItem(ACTIVE_PROFILE_KEY, 'honza');
+      return 'honza';
+    }
+    return id;
   } catch (e) {
-    return 'default';
+    return 'honza';
   }
 }
 
@@ -30,7 +54,7 @@ export function setActiveProfileId(profileId) {
 export function createProfile(profileName) {
   const profiles = getProfiles();
   const newProfile = {
-    id: `profile_${Date.now()}`,
+    id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name: profileName.trim()
   };
   const updated = [...profiles, newProfile];
@@ -40,11 +64,11 @@ export function createProfile(profileName) {
 }
 
 export function deleteProfile(profileId) {
-  if (profileId === 'default') return getProfiles();
+  if (profileId === 'honza') return getProfiles();
   const profiles = getProfiles().filter(p => p.id !== profileId);
   localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
   if (getActiveProfileId() === profileId) {
-    setActiveProfileId('default');
+    setActiveProfileId('honza');
   }
   return profiles;
 }
@@ -135,43 +159,46 @@ export function saveCustomPhoto(contactId, photoUrl) {
   return map;
 }
 
-// --- Classes & Students Storage ---
+// --- Classes & Students Storage (Profile-specific) ---
 export function getClassesData() {
   try {
-    const raw = localStorage.getItem('vsps_shared_classes_data');
-    return raw ? JSON.parse(raw) : [
-      {
-        id: 'class_demo',
-        name: 'Ukázková třída 4.A',
-        students: [
-          {
-            id: 'student_demo_1',
-            name: 'Jan Novák',
-            role: 'Žák třídy 4.A',
-            category: 'Žáci (4.A)',
-            cabinet: 'Třída 4.A (učebna 102)',
-            hasPhoto: false,
-            photoUrl: '',
-            classId: 'class_demo'
-          }
-        ]
+    const activeProfile = getActiveProfileId();
+    const raw = localStorage.getItem(getKey('classes_data'));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (activeProfile === 'honza' && Array.isArray(parsed)) {
+        // Ensure "S1 Celá" is present in Honza's classes
+        const s1CelaClass = HONZA_CLASSES_DATA.find(c => c.name === 'S1 Celá');
+        if (s1CelaClass && !parsed.some(c => c.name === 'S1 Celá' || c.id === 'class_s1_cela')) {
+          const updated = [s1CelaClass, ...parsed];
+          localStorage.setItem(getKey('classes_data'), JSON.stringify(updated));
+          return updated;
+        }
       }
-    ];
-  } catch (e) {
+      return parsed;
+    }
+    // If Honza profile and no custom storage yet -> initialize with pre-loaded classes!
+    if (activeProfile === 'honza') {
+      localStorage.setItem(getKey('classes_data'), JSON.stringify(HONZA_CLASSES_DATA));
+      return HONZA_CLASSES_DATA;
+    }
     return [];
+  } catch (e) {
+    return activeProfile === 'honza' ? HONZA_CLASSES_DATA : [];
   }
 }
 
 export function saveClassesData(classes) {
-  localStorage.setItem('vsps_shared_classes_data', JSON.stringify(classes));
+  localStorage.setItem(getKey('classes_data'), JSON.stringify(classes));
   return classes;
 }
 
 export function addClass(className) {
   const classes = getClassesData();
+  const cleanName = className.trim();
   const newClass = {
     id: `class_${Date.now()}`,
-    name: className.trim(),
+    name: cleanName,
     students: []
   };
   const updated = [...classes, newClass];
@@ -204,6 +231,9 @@ export function addStudentToClass(classId, studentData) {
       if (studentData.note) {
         saveNote(newStudent.id, studentData.note);
       }
+      if (studentData.photoUrl) {
+        saveCustomPhoto(newStudent.id, studentData.photoUrl);
+      }
 
       return {
         ...c,
@@ -215,6 +245,45 @@ export function addStudentToClass(classId, studentData) {
 
   saveClassesData(updated);
   return updated;
+}
+
+export function updateStudent(classId, studentId, updatedFields) {
+  const classes = getClassesData();
+  const updated = classes.map(c => {
+    if (c.id === classId) {
+      return {
+        ...c,
+        students: c.students.map(s => {
+          if (s.id === studentId) {
+            const hasPhoto = updatedFields.photoUrl !== undefined ? !!updatedFields.photoUrl : s.hasPhoto;
+            const photoUrl = updatedFields.photoUrl !== undefined ? updatedFields.photoUrl : s.photoUrl;
+            return {
+              ...s,
+              ...updatedFields,
+              hasPhoto,
+              photoUrl
+            };
+          }
+          return s;
+        })
+      };
+    }
+    return c;
+  });
+
+  if (updatedFields.photoUrl !== undefined) {
+    saveCustomPhoto(studentId, updatedFields.photoUrl);
+  }
+  if (updatedFields.note !== undefined) {
+    saveNote(studentId, updatedFields.note);
+  }
+
+  saveClassesData(updated);
+  return updated;
+}
+
+export function updateStudentPhoto(classId, studentId, photoUrl) {
+  return updateStudent(classId, studentId, { photoUrl });
 }
 
 export function deleteStudent(classId, studentId) {
@@ -302,6 +371,7 @@ export function saveSettings(settings) {
 export function exportAllData() {
   return JSON.stringify({
     profileId: getActiveProfileId(),
+    profiles: getProfiles(),
     tykani: getTykaniMap(),
     memorized: getMemorizedMap(),
     notes: getNotesMap(),
@@ -316,11 +386,13 @@ export function exportAllData() {
 export function importAllData(jsonString) {
   try {
     const parsed = JSON.parse(jsonString);
+    if (parsed.profiles) localStorage.setItem(PROFILES_KEY, JSON.stringify(parsed.profiles));
+    if (parsed.profileId) localStorage.setItem(ACTIVE_PROFILE_KEY, parsed.profileId);
     if (parsed.tykani) localStorage.setItem(getKey('tykani_map'), JSON.stringify(parsed.tykani));
     if (parsed.memorized) localStorage.setItem(getKey('memorized_map'), JSON.stringify(parsed.memorized));
     if (parsed.notes) localStorage.setItem(getKey('notes_map'), JSON.stringify(parsed.notes));
     if (parsed.customPhotos) localStorage.setItem(getKey('custom_photos_map'), JSON.stringify(parsed.customPhotos));
-    if (parsed.classes) localStorage.setItem('vsps_shared_classes_data', JSON.stringify(parsed.classes));
+    if (parsed.classes) localStorage.setItem(getKey('classes_data'), JSON.stringify(parsed.classes));
     if (parsed.learningState) localStorage.setItem(getKey('learning_state'), JSON.stringify(parsed.learningState));
     if (parsed.settings) localStorage.setItem(getKey('settings'), JSON.stringify(parsed.settings));
     return true;
