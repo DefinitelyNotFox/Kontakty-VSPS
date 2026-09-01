@@ -235,6 +235,10 @@ h1, h2, h3, h4, h5, h6 {
   border-left: 4px solid var(--accent-success);
 }
 
+.contact-card.memorized-active {
+  border-left: 4px solid var(--accent-warning);
+}
+
 .card-header-wrapper {
   display: flex;
   align-items: flex-start;

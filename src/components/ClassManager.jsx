@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Crop, Users, Trash2, UserPlus, StickyNote, CheckCircle2, Circle, Camera, Image, Edit3, Smartphone } from 'lucide-react';
+import { Plus, Crop, Users, Trash2, UserPlus, StickyNote, CheckCircle2, Circle, Camera, Image, Edit3, Smartphone, BookmarkCheck, Award } from 'lucide-react';
 import ClassPhotoCropper from './ClassPhotoCropper';
 import TeacherSelector from './TeacherSelector';
 import { getInitials, getAvatarGradient } from '../utils/avatar';
@@ -16,10 +16,10 @@ export default function ClassManager({
   onAddStudent,
   onDeleteStudent,
   onUpdateStudentPhoto,
-  tykaniMap,
+  memorizedMap,
   notesMap,
   customPhotosMap,
-  onToggleTykani,
+  onToggleMemorized,
   onEditNote,
   onViewPhoto,
   onOpenSync
@@ -64,6 +64,7 @@ export default function ClassManager({
   };
 
   const totalAllStudents = classes.reduce((sum, c) => sum + c.students.length, 0);
+  const totalMemorizedStudents = classes.reduce((sum, c) => sum + c.students.filter(s => memorizedMap && memorizedMap[s.id]).length, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -112,7 +113,7 @@ export default function ClassManager({
               )}
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
-              Celkem {classes.length} tříd • {totalAllStudents} žáků. Přidávejte fotky jednotlivě nebo ořezem ze společné fotky.
+              Celkem {classes.length} tříd • {totalAllStudents} žáků{totalMemorizedStudents > 0 ? ` • ${totalMemorizedStudents} naučeno` : ''}. Tlačítkem „Znám“ označíte naučené žáky a skryjete je z kvízů.
             </p>
           </div>
         </div>
@@ -231,13 +232,13 @@ export default function ClassManager({
           {activeClass && activeClass.students.length > 0 ? (
             <div className="contacts-grid">
               {activeClass.students.map((student) => {
-                const isTykani = !!tykaniMap[student.id];
+                const isMemorized = !!(memorizedMap && memorizedMap[student.id]);
                 const note = notesMap[student.id];
                 const customPhoto = customPhotosMap && customPhotosMap[student.id];
                 const displayPhoto = customPhoto || student.photoUrl;
 
                 return (
-                  <div key={student.id} className={`contact-card ${isTykani ? 'tykani-active' : ''}`}>
+                  <div key={student.id} className={`contact-card ${isMemorized ? 'memorized-active' : ''}`}>
                     <div className="card-header-wrapper">
                       <div
                         className="avatar-wrapper"
@@ -284,16 +285,21 @@ export default function ClassManager({
                       </button>
                     </div>
 
-                    {/* Tykání Switch Button */}
+                    {/* Znám (Naučeno / Pamatuji si) Switch Button */}
                     <div
-                      className={`tykani-toggle ${isTykani ? 'active' : ''}`}
-                      onClick={() => onToggleTykani(student.id)}
-                      style={{ padding: '0.35rem 0.6rem' }}
-                      title="Označit zda si týkáte"
+                      className={`tykani-toggle ${isMemorized ? 'active' : ''}`}
+                      onClick={() => onToggleMemorized(student.id)}
+                      style={{
+                        padding: '0.35rem 0.6rem',
+                        justifyContent: 'center',
+                        borderColor: isMemorized ? 'var(--accent-warning)' : undefined,
+                        background: isMemorized ? 'rgba(245, 158, 11, 0.15)' : undefined
+                      }}
+                      title={isMemorized ? 'Žáka znám nazpaměť (skrytý z kvízů a flashkaret)' : 'Označit, že žáka znám nazpaměť (skryje z kvízů a flashkaret)'}
                     >
-                      <div className="tykani-label" style={{ fontSize: '0.78rem', gap: '0.35rem' }}>
-                        {isTykani ? <CheckCircle2 size={15} style={{ color: 'var(--accent-success)' }} /> : <Circle size={15} style={{ color: 'var(--text-muted)' }} />}
-                        <span>{isTykani ? 'Tykání' : 'Vykání'}</span>
+                      <div className="tykani-label" style={{ fontSize: '0.78rem', gap: '0.35rem', color: isMemorized ? '#fbbf24' : 'var(--text-secondary)' }}>
+                        {isMemorized ? <BookmarkCheck size={15} style={{ color: '#fbbf24' }} /> : <Award size={15} style={{ color: 'var(--text-muted)' }} />}
+                        <span>{isMemorized ? 'Znám ✓' : 'Znám'}</span>
                       </div>
                     </div>
 

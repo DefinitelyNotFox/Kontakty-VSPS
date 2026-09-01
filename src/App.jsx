@@ -306,10 +306,10 @@ export default function App() {
             onAddStudent={handleAddStudent}
             onDeleteStudent={handleDeleteStudent}
             onUpdateStudentPhoto={handleUpdateStudentPhoto}
-            tykaniMap={tykaniMap}
+            memorizedMap={memorizedMap}
             notesMap={notesMap}
             customPhotosMap={customPhotosMap}
-            onToggleTykani={handleToggleTykani}
+            onToggleMemorized={handleToggleMemorized}
             onEditNote={(c) => setEditingContact(c)}
             onViewPhoto={(c) => setViewingPhotoContact(c)}
             onOpenSync={() => setIsSyncOpen(true)}
